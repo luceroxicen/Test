@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Petualangan Pixel Zara & Gallagher di New York</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body {
+            font-family: 'VT323', monospace;
+            background-color: #0d0f18;
+            color: #fff;
+            overflow-x: hidden;
+        }
+        .pixel-font {
+            font-family: 'Press Start 2P', monospace;
+        }
+        canvas {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            border: 4px solid #f472b6;
+            box-shadow: 0 0 20px rgba(244, 114, 182, 0.4), inset 0 0 15px rgba(0,0,0,0.5);
+            outline: none;
+        }
+        .arcade-btn {
+            box-shadow: 0 6px 0 #9d174d;
+            transition: transform 0.05s, box-shadow 0.05s;
+            touch-action: none;
+        }
+        .arcade-btn:active, .arcade-btn.active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #9d174d;
+        }
+        .arcade-btn-blue {
+            box-shadow: 0 6px 0 #1e40af;
+            touch-action: none;
+        }
+        .arcade-btn-blue:active, .arcade-btn-blue.active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #1e40af;
+        }
+        .arcade-btn-yellow {
+            box-shadow: 0 6px 0 #854d0e;
+            touch-action: none;
+        }
+        .arcade-btn-yellow:active, .arcade-btn-yellow.active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #854d0e;
+        }
+        /* CRT overlay effect */
+        .crt::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            z-index: 10;
+            pointer-events: none;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-2 sm:p-4 bg-slate-950 text-white">
+
+    <!-- Top Header Bar -->
+    <header class="w-full max-w-4xl flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-900/90 rounded-xl border-2 border-pink-500/50 shadow-lg">
+        <div class="flex items-center gap-3">
+            <div class="text-2xl sm:text-3xl animate-bounce">💖</div>
+            <div>
+                <h1 class="pixel-font text-xs sm:text-sm text-pink-400 font-bold tracking-wider">ZARA & GALLAGHER</h1>
+                <p class="text-xs text-yellow-300">Zara (Baju Hitam 🖤) & Gallagher (Magenta 👚) di NYC 🗽</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 text-xs">
+            <button id="themeToggleBtn" class="px-3 py-1.5 bg-indigo-900 hover:bg-indigo-800 border border-indigo-400 rounded-lg text-indigo-200 transition">
+                🌆 <span id="themeLabel">Senja</span>
+            </button>
+            <button id="soundToggleBtn" class="px-3 py-1.5 bg-pink-900 hover:bg-pink-800 border border-pink-400 rounded-lg text-pink-200 transition">
+                🔊 <span id="soundLabel">Musik ON</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="w-full max-w-4xl my-2 flex flex-col items-center">
+        <!-- HUD Stats Bar -->
+        <div class="w-full bg-slate-900 border-x-2 border-t-2 border-pink-500/50 rounded-t-xl px-4 py-2 flex justify-between items-center text-sm sm:text-base">
+            <div class="flex items-center gap-2">
+                <span class="text-pink-400 font-bold">Kebahagiaan:</span>
+                <div class="w-24 sm:w-36 bg-slate-800 h-4 rounded-full overflow-hidden border border-pink-500">
+                    <div id="joyBar" class="bg-gradient-to-r from-pink-500 to-yellow-400 h-full transition-all duration-300" style="width: 25%;"></div>
+                </div>
+                <span id="joyText" class="text-yellow-300 font-bold">25%</span>
+            </div>
+            
+            <div class="flex items-center gap-3 sm:gap-5">
+                <div class="text-yellow-300 font-bold">🥯 <span id="bagelCount">0</span></div>
+                <div class="text-amber-400 font-bold">☕ <span id="coffeeCount">0</span></div>
+                <div class="text-red-400 font-bold">🍎 <span id="appleCount">0</span></div>
+            </div>
+
+            <div id="zoneIndicator" class="hidden sm:block text-xs bg-slate-800 px-2 py-1 rounded border border-indigo-400 text-indigo-300">
+                📍 Central Park
+            </div>
+        </div>
+
+        <!-- Canvas Wrapper -->
+        <div class="relative w-full aspect-[16/9] max-h-[60vh] flex items-center justify-center crt bg-black rounded-b-xl overflow-hidden cursor-pointer">
+            <canvas id="gameCanvas" width="640" height="360" tabindex="0" class="w-full h-full object-contain rounded-b-xl"></canvas>
+            
+            <!-- Dynamic Notification / Banner Overlay -->
+            <div id="gameNotification" class="absolute top-4 left-1/2 -translate-x-1/2 bg-black/90 border-2 border-yellow-400 text-yellow-300 px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold opacity-0 transition-opacity duration-300 pointer-events-none text-center shadow-lg z-10">
+                Zara & Gallagher berpegangan tangan erat! ✨
+            </div>
+
+            <!-- Start Overlay Modal -->
+            <div id="startOverlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center z-20">
+                <h2 class="pixel-font text-base sm:text-2xl text-pink-400 mb-2 animate-pulse">PETUALANGAN NY</h2>
+                <p class="text-xs sm:text-base text-slate-200 max-w-md mb-4">
+                    Kendalikan <span class="text-slate-100 font-bold">Zara 🖤 (Baju & Rambut Hitam)</span> & <span class="text-fuchsia-400 font-bold">Gallagher 👚 (Baju Magenta & Rambut Coklat)</span> yang sedang bergandengan tangan! Kumpulkan makanan, jelajahi NYC, dan melompatlah riang gembira bersama! ✨
+                </p>
+                <button id="startGameBtn" class="arcade-btn px-6 py-3 bg-pink-600 hover:bg-pink-500 active:bg-pink-700 text-white pixel-font text-xs sm:text-sm rounded-xl font-bold border-2 border-pink-300 tracking-wider cursor-pointer">
+                    MULAI MAIN! 🎮
+                </button>
+                <p class="text-xs text-slate-400 mt-4">
+                    [Panah / A-D] Jalan | [Spasi / W / Up] Lompat | [E] Dansa | [F] Foto
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <!-- On-Screen Arcade Controls (Optimized for Touch and Click) -->
+    <footer class="w-full max-w-4xl bg-slate-900/90 border-2 border-pink-500/50 rounded-xl p-3 flex flex-wrap justify-between items-center gap-2">
+        <!-- D-Pad Left/Right -->
+        <div class="flex items-center gap-2">
+            <button id="btnLeft" class="arcade-btn-blue w-14 h-14 sm:w-16 sm:h-16 bg-blue-600 text-white text-2xl font-bold rounded-2xl flex items-center justify-center border-2 border-blue-300 select-none cursor-pointer">
+                ◀
+            </button>
+            <button id="btnRight" class="arcade-btn-blue w-14 h-14 sm:w-16 sm:h-16 bg-blue-600 text-white text-2xl font-bold rounded-2xl flex items-center justify-center border-2 border-blue-300 select-none cursor-pointer">
+                ▶
+            </button>
+        </div>
+
+        <!-- Quick Info Banner -->
+        <div class="hidden md:flex flex-col text-center text-xs text-slate-300">
+            <span>🌸 <b class="text-pink-400">Zara</b> & 🧢 <b class="text-cyan-400">Gallagher</b> Berpegangan Tangan</span>
+            <span>Tekan <kbd class="px-1.5 py-0.5 bg-slate-800 border rounded text-yellow-300">Spasi</kbd> untuk Lompat | <kbd class="px-1.5 py-0.5 bg-slate-800 border rounded text-pink-300">E</kbd> Dansa</span>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center gap-2">
+            <button id="btnDance" class="arcade-btn-yellow w-12 h-12 sm:w-14 sm:h-14 bg-amber-500 text-white text-xl font-bold rounded-2xl flex items-center justify-center border-2 border-amber-200 select-none cursor-pointer" title="Dansa">
+                💃
+            </button>
+            <button id="btnPhoto" class="arcade-btn-yellow w-12 h-12 sm:w-14 sm:h-14 bg-purple-600 text-white text-xl font-bold rounded-2xl flex items-center justify-center border-2 border-purple-200 select-none cursor-pointer" title="Foto Snapshot">
+                📸
+            </button>
+            <button id="btnJump" class="arcade-btn w-16 h-14 sm:w-20 sm:h-16 bg-pink-600 text-white pixel-font text-xs font-bold rounded-2xl flex flex-col items-center justify-center border-2 border-pink-300 select-none cursor-pointer">
+                <span>LOMPAT</span>
+                <span class="text-lg">✨</span>
+            </button>
+        </div>
+    </footer>
+
+    <!-- Photo Memory Modal -->
+    <div id="photoModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+        <div class="bg-slate-900 border-2 border-yellow-400 rounded-2xl p-4 max-w-sm w-full text-center shadow-2xl relative">
+            <button id="closePhotoBtn" class="absolute top-2 right-2 w-8 h-8 bg-pink-600 rounded-full text-white font-bold flex items-center justify-center border border-pink-300 cursor-pointer">✕</button>
+            <h3 class="pixel-font text-xs text-yellow-300 mb-2">📸 KENANG-KENANGAN NYC</h3>
+            <div id="photoPreviewContainer" class="bg-black p-2 rounded-lg border border-slate-700 my-2">
+                <canvas id="photoCanvas" width="320" height="180" class="w-full h-auto border border-pink-500 rounded"></canvas>
+            </div>
+            <p id="photoCaption" class="text-xs text-pink-200 italic mb-3">"Zara & Gallagher di Times Square!"</p>
+            <button id="downloadPhotoBtn" class="px-4 py-2 bg-gradient-to-r from-pink-500 to-yellow-500 text-slate-950 font-bold rounded-xl text-xs hover:opacity-90 transition cursor-pointer">
+                SIMPAN FOTO METS 💖
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Global State
+        const STATE = {
+            isPlaying: false,
+            timeOfDay: 'sunset', // Default diset ke senja cantik!
+            soundEnabled: true,
+            cameraX: 0,
+            worldWidth: 3200,
+            joyLevel: 25,
+            score: { bagels: 0, coffee: 0, apples: 0 },
+            keys: { left: false, right: false, jump: false },
+            particles: [],
+            collectibles: [],
+            landmarks: [],
+            cabs: [],
+            stars: []
+        };
+
+        // 8-Bit Web Audio Synthesizer
+        const AudioEngine = {
+            ctx: null,
+            init() {
+                if (this.ctx) return;
+                try {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioCtx();
+                } catch (e) {
+                    console.log("Audio not supported");
+                }
+            },
+            playTone(freq, type = 'sine', duration = 0.1, gainVal = 0.1) {
+                if (!STATE.soundEnabled || !this.ctx) return;
+                try {
+                    if (this.ctx.state === 'suspended') {
+                        this.ctx.resume();
+                    }
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e){}
+            },
+            playJumpSound() {
+                if (!STATE.soundEnabled || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                try {
+                    if (this.ctx.state === 'suspended') this.ctx.resume();
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(160, now);
+                    osc.frequency.exponentialRampToValueAtTime(500, now + 0.15);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.linearRampToValueAtTime(0.001, now + 0.15);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } catch(e){}
+            },
+            playCollectSound() {
+                this.playTone(523.25, 'triangle', 0.08, 0.12);
+                setTimeout(() => this.playTone(659.25, 'triangle', 0.08, 0.12), 60);
+                setTimeout(() => this.playTone(783.99, 'triangle', 0.12, 0.12), 120);
+            },
+            playDanceSound() {
+                const notes = [392.00, 440.00, 493.88, 523.25, 587.33];
+                notes.forEach((freq, index) => {
+                    setTimeout(() => this.playTone(freq, 'sine', 0.1, 0.1), index * 70);
+                });
+            }
+        };
+
+        // Player Entity (Zara & Gallagher side-by-side holding hands)
+        const player = {
+            x: 100,
+            y: 235,
+            width: 60,
+            height: 50,
+            vx: 0,
+            vy: 0,
+            speed: 3.8,
+            jumpStrength: -9.8,
+            gravity: 0.45,
+            isGrounded: true,
+            facing: 'right', // 'left', 'right'
+            animFrame: 0,
+            animTimer: 0,
+            isDancing: false,
+            danceTimer: 0,
+
+            update() {
+                // Horizontal Movement
+                if (STATE.keys.left) {
+                    this.vx = -this.speed;
+                    this.facing = 'left';
+                } else if (STATE.keys.right) {
+                    this.vx = this.speed;
+                    this.facing = 'right';
+                } else {
+                    this.vx *= 0.65; // friction
+                }
+
+                // Dance Action
+                if (this.isDancing) {
+                    this.danceTimer++;
+                    this.vx = 0;
+                    if (this.danceTimer % 8 === 0) {
+                        spawnSparkles(this.x + this.width / 2, this.y - 10, '💖');
+                    }
+                    if (this.danceTimer > 60) {
+                        this.isDancing = false;
+                        this.danceTimer = 0;
+                    }
+                }
+
+                // Jump Action
+                if (STATE.keys.jump && this.isGrounded) {
+                    this.vy = this.jumpStrength;
+                    this.isGrounded = false;
+                    AudioEngine.playJumpSound();
+                    spawnSparkles(this.x + this.width / 2, this.y + this.height, '✨');
+                    spawnSparkles(this.x + this.width / 2, this.y - 5, '❤️');
+                    addJoy(2);
+                }
+
+                // Apply Gravity & Velocity
+                this.vy += this.gravity;
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // World Constraints
+                if (this.x < 10) this.x = 10;
+                if (this.x > STATE.worldWidth - 70) this.x = STATE.worldWidth - 70;
+
+                // Ground Collision
+                const groundY = 235;
+                if (this.y >= groundY) {
+                    this.y = groundY;
+                    this.vy = 0;
+                    this.isGrounded = true;
+                }
+
+                // Walk Animation Frame Counter
+                if (Math.abs(this.vx) > 0.3) {
+                    this.animTimer++;
+                    if (this.animTimer % 7 === 0) {
+                        this.animFrame = (this.animFrame + 1) % 4;
+                    }
+                } else {
+                    this.animFrame = 0;
+                }
+
+                // Camera Tracking
+                const targetCamX = this.x - canvas.width / 2 + this.width / 2;
+                STATE.cameraX += (targetCamX - STATE.cameraX) * 0.12;
+                if (STATE.cameraX < 0) STATE.cameraX = 0;
+                if (STATE.cameraX > STATE.worldWidth - canvas.width) STATE.cameraX = STATE.worldWidth - canvas.width;
+            },
+
+            draw(renderCtx) {
+                renderCtx.save();
+                
+                const charX = this.x - STATE.cameraX;
+                const charY = this.y;
+
+                // Character Bounce Logic
+                let bounceY = 0;
+                if (!this.isGrounded) {
+                    bounceY = -5;
+                } else if (Math.abs(this.vx) > 0.3) {
+                    bounceY = Math.sin(this.animTimer * 0.4) * 3;
+                } else if (this.isDancing) {
+                    bounceY = Math.sin(this.danceTimer * 0.6) * 6;
+                }
+
+                const drawY = charY + bounceY;
+
+                // Shadows under characters
+                renderCtx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+                renderCtx.beginPath();
+                renderCtx.ellipse(charX + 30, 235 + 46, 26, 6, 0, 0, Math.PI * 2);
+                renderCtx.fill();
+
+                const isLeft = (this.facing === 'left');
+
+                // Positioning Zara (female) & Gallagher (male)
+                const zaraX = isLeft ? charX + 28 : charX;
+                const gallagherX = isLeft ? charX : charX + 28;
+
+                // Draw Zara (Perempuan / Female)
+                drawPixelZara(renderCtx, zaraX, drawY, isLeft, this.animFrame, this.isGrounded);
+
+                // Draw Gallagher (Laki-laki / Male)
+                drawPixelGallagher(renderCtx, gallagherX, drawY, isLeft, this.animFrame, this.isGrounded);
+
+                // --- HOLDING HANDS CONNECTION & GLOWING HEART ---
+                const handZaraX = zaraX + (isLeft ? 8 : 20);
+                const handGallagherX = gallagherX + (isLeft ? 20 : 8);
+                const handY = drawY + 25;
+
+                // Glowing connection line
+                renderCtx.fillStyle = '#f472b6';
+                renderCtx.fillRect((handZaraX + handGallagherX) / 2 - 3, handY - 2, 6, 4);
+
+                // Floating Heart between held hands
+                const heartPulse = Math.sin(Date.now() * 0.008) * 2;
+                renderCtx.fillStyle = '#ff2a85';
+                renderCtx.font = '10px "VT323"';
+                renderCtx.fillText('💖', (handZaraX + handGallagherX) / 2 - 5, handY - 8 + heartPulse);
+
+                // Name Tags above characters
+                renderCtx.font = '8px "Press Start 2P"';
+                
+                // Zara Label
+                renderCtx.fillStyle = '#f472b6';
+                renderCtx.fillText('Zara 🌸', zaraX - 4, drawY - 8);
+
+                // Gallagher Label
+                renderCtx.fillStyle = '#38bdf8';
+                renderCtx.fillText('Gallagher 🧢', gallagherX - 8, drawY - 8);
+
+                renderCtx.restore();
+            }
+        };
+
+        // Detailed Pixel Drawing for Zara (Perempuan)
+        function drawPixelZara(ctx, x, y, isLeft, frame, isGrounded) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Long Flowing Hair (Black Hair)
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(3, 2, 18, 20);
+            ctx.fillRect(1, 6, 22, 14);
+
+            // Red/Pink Hair Ribbon / Bow Accent
+            ctx.fillStyle = '#f43f5e';
+            ctx.fillRect(isLeft ? 4 : 14, 0, 8, 5);
+            ctx.fillRect(isLeft ? 6 : 16, -2, 4, 2);
+
+            // Skin / Face
+            ctx.fillStyle = '#fed7aa';
+            ctx.fillRect(5, 6, 14, 11);
+
+            // Cute Eyes & Eyelashes
+            ctx.fillStyle = '#1e1b4b';
+            ctx.fillRect(isLeft ? 7 : 14, 10, 3, 3);
+            ctx.fillStyle = '#ec4899'; // Eyelash accent
+            ctx.fillRect(isLeft ? 7 : 14, 9, 3, 1);
+
+            // Blushing Cheeks
+            ctx.fillStyle = '#fb7185';
+            ctx.fillRect(isLeft ? 5 : 13, 13, 4, 2);
+
+            // Cute Smile
+            ctx.fillStyle = '#e11d48';
+            ctx.fillRect(isLeft ? 8 : 13, 14, 3, 1);
+
+            // Black Outfit (Black Top with Silver Collar)
+            ctx.fillStyle = '#e2e8f0';
+            ctx.fillRect(8, 16, 8, 2);
+            ctx.fillStyle = '#18181b'; // Sleek Black Top
+            ctx.fillRect(4, 18, 16, 10);
+
+            // Black Skirt
+            ctx.fillStyle = '#09090b';
+            ctx.fillRect(3, 28, 18, 7);
+
+            // Legs Animation
+            ctx.fillStyle = '#fed7aa';
+            let leg1 = (frame === 1) ? 2 : (frame === 3 ? -2 : 0);
+            let leg2 = (frame === 1) ? -2 : (frame === 3 ? 2 : 0);
+            if (!isGrounded) { leg1 = -3; leg2 = 3; }
+
+            ctx.fillRect(6 + leg1, 35, 4, 6);
+            ctx.fillRect(14 + leg2, 35, 4, 6);
+
+            // Stylish Black Shoes
+            ctx.fillStyle = '#18181b';
+            ctx.fillRect(5 + leg1, 41, 6, 3);
+            ctx.fillRect(13 + leg2, 41, 6, 3);
+
+            ctx.restore();
+        }
+
+        // Detailed Pixel Drawing for Gallagher (Laki-laki)
+        function drawPixelGallagher(ctx, x, y, isLeft, frame, isGrounded) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Masculine Short Hair (Brown Hair)
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(4, 1, 16, 8);
+            ctx.fillRect(2, 4, 20, 5);
+
+            // Skin / Face
+            ctx.fillStyle = '#fde68a';
+            ctx.fillRect(5, 7, 14, 10);
+
+            // Cool Eyes
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(isLeft ? 7 : 14, 11, 3, 3);
+
+            // Confident Smile
+            ctx.fillStyle = '#b45309';
+            ctx.fillRect(isLeft ? 8 : 13, 15, 3, 1);
+
+            // Magenta Shirt/Jacket over White T-Shirt
+            ctx.fillStyle = '#d946ef'; // Bright Magenta
+            ctx.fillRect(3, 17, 18, 13);
+            // Inner White T-Shirt
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(10, 17, 4, 13);
+
+            // Dark Denim Pants
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(4, 30, 16, 7);
+
+            // Legs Animation
+            let leg1 = (frame === 1) ? -2 : (frame === 3 ? 2 : 0);
+            let leg2 = (frame === 1) ? 2 : (frame === 3 ? -2 : 0);
+            if (!isGrounded) { leg1 = 3; leg2 = -3; }
+
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(6 + leg1, 37, 4, 5);
+            ctx.fillRect(14 + leg2, 37, 4, 5);
+
+            // Sneakers with Magenta Accents
+            ctx.fillStyle = '#f0abfc';
+            ctx.fillRect(5 + leg1, 42, 6, 3);
+            ctx.fillRect(13 + leg2, 42, 6, 3);
+
+            ctx.restore();
+        }
+
+        function initWorld() {
+            // Stars for Night Sky
+            STATE.stars = [];
+            for (let i = 0; i < 90; i++) {
+                STATE.stars.push({
+                    x: Math.random() * STATE.worldWidth,
+                    y: Math.random() * 140,
+                    size: Math.random() > 0.7 ? 2 : 1,
+                    blink: Math.random() * Math.PI
+                });
+            }
+
+            // NYC Landmarks
+            STATE.landmarks = [
+                { x: 300, name: "Central Park 🌳", color: "#22c55e" },
+                { x: 900, name: "Broadway Theater 🎭", color: "#eab308" },
+                { x: 1600, name: "Times Square 🗽", color: "#ec4899" },
+                { x: 2300, name: "Grand Central 🚉", color: "#3b82f6" },
+                { x: 2800, name: "Brooklyn Bridge View 🌉", color: "#a855f7" }
+            ];
+
+            // NYC Food Collectibles
+            STATE.collectibles = [];
+            const types = ['bagel', 'coffee', 'apple'];
+            for (let i = 250; i < STATE.worldWidth - 200; i += 110 + Math.random() * 70) {
+                const itemType = types[Math.floor(Math.random() * types.length)];
+                STATE.collectibles.push({
+                    x: i,
+                    y: 215 - (Math.random() > 0.5 ? 45 : 0),
+                    type: itemType,
+                    collected: false,
+                    floatOffset: Math.random() * Math.PI
+                });
+            }
+
+            // Yellow Cabs
+            STATE.cabs = [
+                { x: 100, speed: 2.3 },
+                { x: 1100, speed: 1.9 },
+                { x: 2100, speed: 2.6 }
+            ];
+        }
+
+        function renderBackground(renderCtx) {
+            const width = canvas.width;
+            const height = canvas.height;
+
+            // Sky Gradient
+            let skyGradient = renderCtx.createLinearGradient(0, 0, 0, height);
+            if (STATE.timeOfDay === 'night') {
+                skyGradient.addColorStop(0, '#090d16');
+                skyGradient.addColorStop(0.6, '#1e1b4b');
+                skyGradient.addColorStop(1, '#31103f');
+            } else if (STATE.timeOfDay === 'sunset') {
+                // Senja Cantik Multi-Tone Gradient (Violet -> Magenta -> Crimson -> Orange -> Gold)
+                skyGradient.addColorStop(0, '#2e1065');
+                skyGradient.addColorStop(0.25, '#701a75');
+                skyGradient.addColorStop(0.55, '#be123c');
+                skyGradient.addColorStop(0.8, '#f97316');
+                skyGradient.addColorStop(1, '#fde047');
+            } else {
+                skyGradient.addColorStop(0, '#0284c7');
+                skyGradient.addColorStop(0.7, '#38bdf8');
+                skyGradient.addColorStop(1, '#bae6fd');
+            }
+            renderCtx.fillStyle = skyGradient;
+            renderCtx.fillRect(0, 0, width, height);
+
+            // Night Stars
+            if (STATE.timeOfDay !== 'day') {
+                renderCtx.fillStyle = '#ffffff';
+                STATE.stars.forEach(star => {
+                    const screenX = star.x - STATE.cameraX * 0.2;
+                    if (screenX >= -10 && screenX <= width + 10) {
+                        const alpha = 0.3 + Math.sin(Date.now() * 0.003 + star.blink) * 0.5;
+                        renderCtx.globalAlpha = Math.max(0.1, alpha);
+                        renderCtx.fillRect(screenX, star.y, star.size, star.size);
+                    }
+                });
+                renderCtx.globalAlpha = 1.0;
+            }
+
+            // Parallax 1: Far Buildings
+            renderCtx.fillStyle = STATE.timeOfDay === 'day' ? '#64748b' : '#111827';
+            const skylineX = -(STATE.cameraX * 0.3) % 180;
+            for (let x = skylineX - 200; x < width + 200; x += 60) {
+                const bHeight = 80 + Math.abs(Math.sin(x * 0.05)) * 110;
+                renderCtx.fillRect(x, 280 - bHeight, 52, bHeight);
+                if (Math.abs(x % 300) < 60) {
+                    renderCtx.fillRect(x + 22, 280 - bHeight - 35, 8, 35);
+                }
+            }
+
+            // Parallax 2: Midground Buildings with Neon Lights
+            for (let i = 0; i < STATE.worldWidth; i += 180) {
+                const screenX = i - STATE.cameraX * 0.6;
+                if (screenX > -200 && screenX < width + 200) {
+                    const bH = 140 + (i % 5) * 20;
+                    
+                    renderCtx.fillStyle = (STATE.timeOfDay === 'day') ? '#475569' : '#1e293b';
+                    renderCtx.fillRect(screenX, 280 - bH, 160, bH);
+
+                    // Windows
+                    renderCtx.fillStyle = (STATE.timeOfDay === 'day') ? '#94a3b8' : '#fef08a';
+                    for (let wx = screenX + 15; wx < screenX + 140; wx += 25) {
+                        for (let wy = 280 - bH + 20; wy < 260; wy += 30) {
+                            if ((wx + wy) % 3 === 0) {
+                                renderCtx.fillRect(wx, wy, 14, 18);
+                            }
+                        }
+                    }
+
+                    // Times Square Neon Billboards
+                    if (i === 1440 || i === 1620) {
+                        renderCtx.fillStyle = '#ec4899';
+                        renderCtx.fillRect(screenX + 15, 280 - bH + 15, 130, 38);
+                        renderCtx.fillStyle = '#ffffff';
+                        renderCtx.font = '8px "Press Start 2P"';
+                        renderCtx.fillText("ZARA 🌸 GALLAGHER", screenX + 20, 280 - bH + 30);
+                        renderCtx.fillText(" I ❤️ NYC ", screenX + 35, 280 - bH + 43);
+                    }
+                }
+            }
+
+            // Ground / Street Base
+            renderCtx.fillStyle = '#334155';
+            renderCtx.fillRect(0, 280, width, height - 280);
+
+            // Sidewalk Border
+            renderCtx.fillStyle = '#64748b';
+            renderCtx.fillRect(0, 280, width, 6);
+
+            // Yellow Road Lines
+            renderCtx.fillStyle = '#fde047';
+            const roadDashOff = -(STATE.cameraX) % 80;
+            for (let rx = roadDashOff - 80; rx < width + 80; rx += 80) {
+                renderCtx.fillRect(rx, 335, 40, 4);
+            }
+
+            // Yellow Cabs Driving
+            STATE.cabs.forEach(cab => {
+                cab.x += cab.speed;
+                if (cab.x > STATE.worldWidth + 100) cab.x = -200;
+
+                const cabScreenX = cab.x - STATE.cameraX;
+                if (cabScreenX > -100 && cabScreenX < width + 100) {
+                    renderCtx.fillStyle = '#eab308';
+                    renderCtx.fillRect(cabScreenX, 292, 50, 18);
+                    renderCtx.fillRect(cabScreenX + 10, 282, 30, 10);
+                    renderCtx.fillStyle = '#0284c7';
+                    renderCtx.fillRect(cabScreenX + 14, 284, 10, 7);
+                    renderCtx.fillRect(cabScreenX + 26, 284, 10, 7);
+                    renderCtx.fillStyle = '#ffffff';
+                    renderCtx.fillRect(cabScreenX + 20, 278, 10, 4);
+                    renderCtx.fillStyle = '#0f172a';
+                    renderCtx.fillRect(cabScreenX + 8, 308, 10, 6);
+                    renderCtx.fillRect(cabScreenX + 32, 308, 10, 6);
+                }
+            });
+
+            // Street Signs & Landmark Markers
+            STATE.landmarks.forEach(lm => {
+                const lmScreenX = lm.x - STATE.cameraX;
+                if (lmScreenX > -150 && lmScreenX < width + 150) {
+                    renderCtx.fillStyle = '#475569';
+                    renderCtx.fillRect(lmScreenX, 205, 6, 75);
+                    renderCtx.fillStyle = lm.color;
+                    renderCtx.fillRect(lmScreenX - 45, 195, 96, 22);
+                    renderCtx.fillStyle = '#ffffff';
+                    renderCtx.font = '10px "VT323"';
+                    renderCtx.fillText(lm.name, lmScreenX - 40, 210);
+
+                    if (Math.abs((player.x + 30) - lm.x) < 50) {
+                        document.getElementById('zoneIndicator').innerText = `📍 ${lm.name}`;
+                    }
+                }
+            });
+        }
+
+        function renderEntities(renderCtx) {
+            // Collectibles
+            STATE.collectibles.forEach(item => {
+                if (item.collected) return;
+
+                const screenX = item.x - STATE.cameraX;
+                if (screenX > -30 && screenX < canvas.width + 30) {
+                    item.floatOffset += 0.05;
+                    const floatY = item.y + Math.sin(item.floatOffset) * 4;
+
+                    renderCtx.font = '18px sans-serif';
+                    let emoji = '🥯';
+                    if (item.type === 'coffee') emoji = '☕';
+                    if (item.type === 'apple') emoji = '🍎';
+
+                    renderCtx.fillText(emoji, screenX, floatY);
+
+                    // Collision Check
+                    if (
+                        player.x < item.x + 20 &&
+                        player.x + player.width > item.x &&
+                        player.y < floatY + 20 &&
+                        player.y + player.height > floatY
+                    ) {
+                        item.collected = true;
+                        AudioEngine.playCollectSound();
+                        
+                        if (item.type === 'bagel') STATE.score.bagels++;
+                        if (item.type === 'coffee') STATE.score.coffee++;
+                        if (item.type === 'apple') STATE.score.apples++;
+
+                        addJoy(6);
+                        spawnSparkles(item.x, floatY, '✨');
+                        spawnSparkles(item.x, floatY, '💖');
+                        updateHUD();
+                        showNotification(`Kalian mendapatkan ${emoji} khas NYC!`);
+                    }
+                }
+            });
+
+            // Particles
+            for (let i = STATE.particles.length - 1; i >= 0; i--) {
+                const p = STATE.particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.03;
+
+                const screenX = p.x - STATE.cameraX;
+
+                if (p.life <= 0 || screenX < -50 || screenX > canvas.width + 50) {
+                    STATE.particles.splice(i, 1);
+                } else {
+                    renderCtx.save();
+                    renderCtx.globalAlpha = p.life;
+                    renderCtx.font = `${p.size}px sans-serif`;
+                    renderCtx.fillText(p.char, screenX, p.y);
+                    renderCtx.restore();
+                }
+            }
+        }
+
+        function spawnSparkles(x, y, char = '✨') {
+            for (let i = 0; i < 4; i++) {
+                STATE.particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 3,
+                    vy: (Math.random() - 0.8) * 3,
+                    char: char,
+                    size: 12 + Math.random() * 8,
+                    life: 1.0
+                });
+            }
+        }
+
+        function addJoy(amount) {
+            STATE.joyLevel = Math.min(100, STATE.joyLevel + amount);
+            updateHUD();
+        }
+
+        function updateHUD() {
+            document.getElementById('joyBar').style.width = `${STATE.joyLevel}%`;
+            document.getElementById('joyText').innerText = `${Math.floor(STATE.joyLevel)}%`;
+            document.getElementById('bagelCount').innerText = STATE.score.bagels;
+            document.getElementById('coffeeCount').innerText = STATE.score.coffee;
+            document.getElementById('appleCount').innerText = STATE.score.apples;
+        }
+
+        let notifyTimeout = null;
+        function showNotification(msg) {
+            const el = document.getElementById('gameNotification');
+            el.innerText = msg;
+            el.style.opacity = '1';
+            if (notifyTimeout) clearTimeout(notifyTimeout);
+            notifyTimeout = setTimeout(() => {
+                el.style.opacity = '0';
+            }, 2500);
+        }
+
+        function takePhotoSnapshot() {
+            AudioEngine.playTone(800, 'sine', 0.05, 0.2);
+            setTimeout(() => AudioEngine.playTone(1200, 'sine', 0.1, 0.2), 60);
+
+            const photoCanvas = document.getElementById('photoCanvas');
+            const pCtx = photoCanvas.getContext('2d');
+
+            pCtx.drawImage(canvas, 0, 0, photoCanvas.width, photoCanvas.height);
+
+            pCtx.strokeStyle = '#f472b6';
+            pCtx.lineWidth = 4;
+            pCtx.strokeRect(0, 0, photoCanvas.width, photoCanvas.height);
+
+            pCtx.fillStyle = '#fef08a';
+            pCtx.font = '9px "Press Start 2P"';
+            pCtx.fillText('ZARA 🌸 & GALLAGHER 🧢 NYC ❤️', 8, photoCanvas.height - 10);
+
+            const currentZone = document.getElementById('zoneIndicator').innerText;
+            document.getElementById('photoCaption').innerText = `"Momen Kenangan Zara & Gallagher di ${currentZone.replace('📍 ', '')}!"`;
+
+            document.getElementById('photoModal').classList.remove('hidden');
+            document.getElementById('photoModal').classList.add('flex');
+            addJoy(10);
+            showNotification("Foto Berhasil Diambil! 📸");
+        }
+
+        function setupControls() {
+            const startGame = () => {
+                AudioEngine.init();
+                STATE.isPlaying = true;
+                document.getElementById('startOverlay').classList.add('hidden');
+                canvas.focus();
+            };
+
+            // Start Game Trigger on Overlay or Canvas Click
+            document.getElementById('startGameBtn').addEventListener('click', startGame);
+            document.getElementById('startOverlay').addEventListener('click', startGame);
+            canvas.addEventListener('click', startGame);
+
+            // Universal Keyboard Event Handling
+            window.addEventListener('keydown', (e) => {
+                if (!STATE.isPlaying) startGame();
+
+                if (['ArrowLeft', 'a', 'A'].includes(e.key)) {
+                    STATE.keys.left = true;
+                }
+                if (['ArrowRight', 'd', 'D'].includes(e.key)) {
+                    STATE.keys.right = true;
+                }
+                if ([' ', 'ArrowUp', 'w', 'W'].includes(e.key)) {
+                    e.preventDefault();
+                    STATE.keys.jump = true;
+                }
+                if (['e', 'E'].includes(e.key)) {
+                    player.isDancing = true;
+                    AudioEngine.playDanceSound();
+                    showNotification("Zara & Gallagher Berdansa Ceria! 💃✨");
+                }
+                if (['f', 'F'].includes(e.key)) {
+                    takePhotoSnapshot();
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                if (['ArrowLeft', 'a', 'A'].includes(e.key)) STATE.keys.left = false;
+                if (['ArrowRight', 'd', 'D'].includes(e.key)) STATE.keys.right = false;
+                if ([' ', 'ArrowUp', 'w', 'W'].includes(e.key)) STATE.keys.jump = false;
+            });
+
+            // Reliable Pointer / Touch Controls for On-Screen Arcade Buttons
+            const bindArcadeBtn = (id, action) => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+
+                const press = (e) => {
+                    e.preventDefault();
+                    btn.classList.add('active');
+                    startGame();
+
+                    if (action === 'left') STATE.keys.left = true;
+                    if (action === 'right') STATE.keys.right = true;
+                    if (action === 'jump') STATE.keys.jump = true;
+                    if (action === 'dance') {
+                        player.isDancing = true;
+                        AudioEngine.playDanceSound();
+                        showNotification("Zara & Gallagher Berdansa Ceria! 💃✨");
+                    }
+                };
+
+                const release = (e) => {
+                    e.preventDefault();
+                    btn.classList.remove('active');
+                    if (action === 'left') STATE.keys.left = false;
+                    if (action === 'right') STATE.keys.right = false;
+                    if (action === 'jump') STATE.keys.jump = false;
+                };
+
+                btn.addEventListener('pointerdown', press);
+                btn.addEventListener('pointerup', release);
+                btn.addEventListener('pointercancel', release);
+                btn.addEventListener('pointerleave', release);
+            };
+
+            bindArcadeBtn('btnLeft', 'left');
+            bindArcadeBtn('btnRight', 'right');
+            bindArcadeBtn('btnJump', 'jump');
+            bindArcadeBtn('btnDance', 'dance');
+
+            document.getElementById('btnPhoto').addEventListener('click', (e) => {
+                e.preventDefault();
+                startGame();
+                takePhotoSnapshot();
+            });
+
+            // Theme Toggle Button
+            document.getElementById('themeToggleBtn').addEventListener('click', () => {
+                if (STATE.timeOfDay === 'night') {
+                    STATE.timeOfDay = 'day';
+                    document.getElementById('themeLabel').innerText = 'Siang';
+                } else if (STATE.timeOfDay === 'day') {
+                    STATE.timeOfDay = 'sunset';
+                    document.getElementById('themeLabel').innerText = 'Senja';
+                } else {
+                    STATE.timeOfDay = 'night';
+                    document.getElementById('themeLabel').innerText = 'Malam';
+                }
+            });
+
+            // Sound Toggle
+            document.getElementById('soundToggleBtn').addEventListener('click', () => {
+                STATE.soundEnabled = !STATE.soundEnabled;
+                document.getElementById('soundLabel').innerText = STATE.soundEnabled ? 'Musik ON' : 'Mute';
+            });
+
+            // Modal Controls
+            document.getElementById('closePhotoBtn').addEventListener('click', () => {
+                document.getElementById('photoModal').classList.add('hidden');
+                document.getElementById('photoModal').classList.remove('flex');
+            });
+
+            document.getElementById('downloadPhotoBtn').addEventListener('click', () => {
+                showNotification("Kenangan manis Zara & Gallagher tersimpan! ❤️");
+                document.getElementById('photoModal').classList.add('hidden');
+                document.getElementById('photoModal').classList.remove('flex');
+            });
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Always update player if active or during overlay
+            if (STATE.isPlaying) {
+                player.update();
+            }
+
+            renderBackground(ctx);
+            renderEntities(ctx);
+            player.draw(ctx);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.onload = function() {
+            initWorld();
+            setupControls();
+            gameLoop();
+        };
+    </script>
+</body>
+</html>
